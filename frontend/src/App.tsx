@@ -10,8 +10,10 @@
  * dashboards are Phase 3+. This confirms auth works without building premature UI.
  */
 
+import { useState } from 'react'
 import { AuthProvider, useAuth } from './contexts/AuthContext'
 import DemoLoginPage from './pages/DemoLoginPage'
+import SkillExplorerPage from './pages/SkillExplorerPage'
 
 const ROLE_LABELS: Record<string, string> = {
   STUDENT: 'Student',
@@ -87,6 +89,7 @@ function AuthenticatedPlaceholder() {
 
 function AppContent() {
   const { user, isLoading } = useAuth()
+  const [view, setView] = useState<'skills' | 'auth'>('skills')
 
   if (isLoading) {
     return (
@@ -96,7 +99,39 @@ function AppContent() {
     )
   }
 
-  return user ? <AuthenticatedPlaceholder /> : <DemoLoginPage />
+  if (!user) return <DemoLoginPage />
+
+  return (
+    <div>
+      <div className="bg-slate-900 border-b border-slate-800 px-6 py-2 flex items-center justify-between text-xs">
+        <div className="flex items-center gap-2">
+          <span className="text-slate-400 font-semibold uppercase tracking-wider text-[11px]">Phase View:</span>
+          <button
+            onClick={() => setView('skills')}
+            className={`px-3 py-1 rounded transition font-medium ${
+              view === 'skills'
+                ? 'bg-indigo-600 text-white shadow'
+                : 'text-slate-400 hover:text-white bg-slate-800'
+            }`}
+          >
+            Phase 3: Skill & Question Explorer
+          </button>
+          <button
+            onClick={() => setView('auth')}
+            className={`px-3 py-1 rounded transition font-medium ${
+              view === 'auth'
+                ? 'bg-indigo-600 text-white shadow'
+                : 'text-slate-400 hover:text-white bg-slate-800'
+            }`}
+          >
+            Phase 2: Auth Status
+          </button>
+        </div>
+      </div>
+
+      {view === 'skills' ? <SkillExplorerPage /> : <AuthenticatedPlaceholder />}
+    </div>
+  )
 }
 
 export default function App() {
