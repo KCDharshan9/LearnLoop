@@ -6,4 +6,13 @@ function readPort(value: string | undefined): number {
   return port
 }
 
-export const env = { port: readPort(process.env.PORT), clientUrl: process.env.CLIENT_URL ?? 'http://localhost:5173' }
+function readMongoUri(value: string | undefined): string {
+  if (!value) throw new Error('MONGODB_URI must be configured before starting the backend.')
+  return value
+}
+
+export const env = {
+  port: readPort(process.env.PORT),
+  clientUrl: process.env.CLIENT_URL ?? 'http://localhost:5173',
+  mongoUri: readMongoUri(process.env.MONGODB_URI),
+}
