@@ -2,3 +2,10 @@ imp/
 
 .env
 .env.*
+!.env.example
+!frontend/.env.example
+!backend/.env.example
+
+node_modules/
+frontend/dist/
+backend/dist/
