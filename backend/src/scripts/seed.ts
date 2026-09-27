@@ -12,15 +12,15 @@ async function upsertUser(name: string, email: string, role: 'ADMIN' | 'TEACHER'
 async function seed(): Promise<void> {
   await connectDatabase()
 
-  const admin = await upsertUser('Demo Admin', 'admin@learnloop.demo', 'ADMIN', 'demo-admin')
-  const teacherUser = await upsertUser('Demo Teacher', 'teacher@learnloop.demo', 'TEACHER', 'demo-teacher')
-  const studentUser = await upsertUser('Demo Student', 'student@learnloop.demo', 'STUDENT', 'demo-student')
-  const studentTwoUser = await upsertUser('Demo Student Two', 'student.two@learnloop.demo', 'STUDENT', 'demo-student-two')
-  const studentThreeUser = await upsertUser('Demo Student Three', 'student.three@learnloop.demo', 'STUDENT', 'demo-student-three')
-  const teacher = (await Teacher.findOneAndUpdate({ userId: teacherUser._id }, { $set: { userId: teacherUser._id, name: 'Demo Teacher', schoolId: 'learnloop-demo-school', studentIds: [] } }, { returnDocument: 'after', upsert: true, setDefaultsOnInsert: true }).orFail()) as unknown as SeedReference
-  const student = (await Student.findOneAndUpdate({ studentCode: 'LL-DEMO-001' }, { $set: { userId: studentUser._id, studentCode: 'LL-DEMO-001', name: 'Demo Student', grade: 3, teacherIds: [teacher._id], currentLevel: 1 } }, { returnDocument: 'after', upsert: true, setDefaultsOnInsert: true }).orFail()) as unknown as SeedReference
-  const studentTwo = (await Student.findOneAndUpdate({ studentCode: 'LL-DEMO-002' }, { $set: { userId: studentTwoUser._id, studentCode: 'LL-DEMO-002', name: 'Demo Student Two', grade: 3, teacherIds: [teacher._id], currentLevel: 1 } }, { returnDocument: 'after', upsert: true, setDefaultsOnInsert: true }).orFail()) as unknown as SeedReference
-  const studentThree = (await Student.findOneAndUpdate({ studentCode: 'LL-DEMO-003' }, { $set: { userId: studentThreeUser._id, studentCode: 'LL-DEMO-003', name: 'Demo Student Three', grade: 4, teacherIds: [teacher._id], currentLevel: 2 } }, { returnDocument: 'after', upsert: true, setDefaultsOnInsert: true }).orFail()) as unknown as SeedReference
+  const admin = await upsertUser('Admin One', 'admin1@learnloop.xyz', 'ADMIN', 'admin1')
+  const teacherUser = await upsertUser('Teacher One', 'teacher1@learnloop.xyz', 'TEACHER', 'teacher1')
+  const studentUser = await upsertUser('Student One', 'student1@learnloop.xyz', 'STUDENT', 'student1')
+  const studentTwoUser = await upsertUser('Student Two', 'student2@learnloop.xyz', 'STUDENT', 'student2')
+  const studentThreeUser = await upsertUser('Student Three', 'student3@learnloop.xyz', 'STUDENT', 'student3')
+  const teacher = (await Teacher.findOneAndUpdate({ userId: teacherUser._id }, { $set: { userId: teacherUser._id, name: 'Teacher One', schoolId: 'learnloop-demo-school', studentIds: [] } }, { returnDocument: 'after', upsert: true, setDefaultsOnInsert: true }).orFail()) as unknown as SeedReference
+  const student = (await Student.findOneAndUpdate({ studentCode: 'LL-DEMO-001' }, { $set: { userId: studentUser._id, studentCode: 'LL-DEMO-001', name: 'Student One', grade: 3, teacherIds: [teacher._id], currentLevel: 1 } }, { returnDocument: 'after', upsert: true, setDefaultsOnInsert: true }).orFail()) as unknown as SeedReference
+  const studentTwo = (await Student.findOneAndUpdate({ studentCode: 'LL-DEMO-002' }, { $set: { userId: studentTwoUser._id, studentCode: 'LL-DEMO-002', name: 'Student Two', grade: 3, teacherIds: [teacher._id], currentLevel: 1 } }, { returnDocument: 'after', upsert: true, setDefaultsOnInsert: true }).orFail()) as unknown as SeedReference
+  const studentThree = (await Student.findOneAndUpdate({ studentCode: 'LL-DEMO-003' }, { $set: { userId: studentThreeUser._id, studentCode: 'LL-DEMO-003', name: 'Student Three', grade: 4, teacherIds: [teacher._id], currentLevel: 2 } }, { returnDocument: 'after', upsert: true, setDefaultsOnInsert: true }).orFail()) as unknown as SeedReference
   await Teacher.updateOne({ _id: teacher._id }, { $set: { studentIds: [student._id, studentTwo._id, studentThree._id] } })
 
   const skillDefinitions = [
@@ -64,7 +64,7 @@ async function seed(): Promise<void> {
   await Assessment.findOneAndUpdate({ title: 'Foundational Numeracy Diagnostic' }, { $set: { title: 'Foundational Numeracy Diagnostic', type: 'DIAGNOSTIC', skillIds: [...skills.values()].map((skill) => skill._id), questionIds, questionCount: 10, difficultyRange: { min: 1, max: 2 }, createdBy: admin._id, targetRole: 'STUDENT', active: true } }, { returnDocument: 'after', upsert: true, setDefaultsOnInsert: true })
   await Assessment.findOneAndUpdate({ title: 'Multiplication Reassessment' }, { $set: { title: 'Multiplication Reassessment', type: 'REASSESSMENT', skillIds: [multiplication._id], questionIds: questionIds.slice(6, 8), questionCount: 2, difficultyRange: { min: 1, max: 2 }, createdBy: admin._id, targetRole: 'STUDENT', active: true } }, { returnDocument: 'after', upsert: true, setDefaultsOnInsert: true })
 
-  console.info(`Seed complete: 5 users, 1 teacher, 3 students, ${skills.size} skills, ${questionIds.length} questions, 2 activities, 2 assessments.`)
+  console.info(`Seed complete: 5 users (admin1, teacher1, student1-3 @learnloop.xyz), 1 teacher, 3 students, ${skills.size} skills, ${questionIds.length} questions, 2 activities, 2 assessments.`)
   void activity
 }
 
