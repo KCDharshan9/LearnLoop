@@ -3,6 +3,8 @@ import express from 'express'
 import { env } from './config/env.js'
 import { errorHandler } from './middleware/errorHandler.js'
 import { notFound } from './middleware/notFound.js'
+import { assessmentAttemptRouter } from './routes/assessmentAttemptRoutes.js'
+import { assessmentRouter } from './routes/assessmentRoutes.js'
 import { authRouter } from './routes/authRoutes.js'
 import { healthRouter } from './routes/healthRoutes.js'
 import { questionRouter } from './routes/questionRoutes.js'
@@ -15,5 +17,7 @@ app.use('/api', healthRouter)
 app.use('/api/auth', authRouter)
 app.use('/api/skills', skillRouter)
 app.use('/api/questions', questionRouter)
+app.use('/api/assessments', assessmentRouter)
+app.use('/api/assessment-attempts', assessmentAttemptRouter)
 app.use(notFound)
 app.use(errorHandler)

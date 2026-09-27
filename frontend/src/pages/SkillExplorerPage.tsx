@@ -16,7 +16,11 @@ import { fetchQuestions, selectQuestions } from '../services/questionService'
 import type { SkillDetail, SkillSummary } from '../types/skills'
 import type { QuestionData } from '../types/questions'
 
-export default function SkillExplorerPage() {
+interface SkillExplorerPageProps {
+  onNavigateToDiagnostic?: () => void
+}
+
+export default function SkillExplorerPage({ onNavigateToDiagnostic }: SkillExplorerPageProps) {
   const { user, logout } = useAuth()
 
   // Skills state
@@ -130,12 +134,25 @@ export default function SkillExplorerPage() {
             LL
           </div>
           <div>
-            <h1 className="text-sm font-semibold text-white">LearnLoop — Phase 3 Verification</h1>
-            <p className="text-xs text-slate-400">Skill & Question System Explorer (Dev)</p>
+            <h1 className="text-sm font-semibold text-white">LearnLoop</h1>
+            <p className="text-xs text-slate-400">Curriculum & Prerequisite Graph Explorer</p>
           </div>
         </div>
 
-        <div className="flex items-center gap-4 text-xs">
+        <div className="flex items-center gap-3 text-xs">
+          {onNavigateToDiagnostic && (
+            <button
+              onClick={onNavigateToDiagnostic}
+              className="px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-medium transition"
+            >
+              {user?.role === 'TEACHER'
+                ? '← Teacher Workspace'
+                : user?.role === 'ADMIN'
+                  ? '← Admin Console'
+                  : '← Diagnostic Assessment'}
+            </button>
+          )}
+
           <div className="flex items-center gap-2 bg-slate-800/80 px-3 py-1.5 rounded-lg border border-slate-700">
             <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
             <span className="text-slate-300">{user?.name}</span>
