@@ -9,6 +9,7 @@ import { authRouter } from './routes/authRoutes.js'
 import { healthRouter } from './routes/healthRoutes.js'
 import { questionRouter } from './routes/questionRoutes.js'
 import { skillRouter } from './routes/skillRoutes.js'
+import { studentRouter } from './routes/studentRoutes.js'
 
 export const app = express()
 app.use(cors({ origin: env.clientUrl }))
@@ -19,5 +20,6 @@ app.use('/api/skills', skillRouter)
 app.use('/api/questions', questionRouter)
 app.use('/api/assessments', assessmentRouter)
 app.use('/api/assessment-attempts', assessmentAttemptRouter)
+app.use('/api/students', studentRouter)
 app.use(notFound)
 app.use(errorHandler)

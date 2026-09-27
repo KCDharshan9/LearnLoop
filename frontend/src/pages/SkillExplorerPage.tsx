@@ -1,15 +1,16 @@
 /**
- * SkillExplorerPage.tsx — Phase 3 Development Verification Interface.
+ * SkillExplorerPage.tsx — LearnLoop Curriculum Graph & Skill Hierarchy.
  *
- * This development-facing page allows the developer to verify the real backend
- * Skill and Question systems:
- * 1. Load real skills from MongoDB via GET /api/skills.
- * 2. Select a skill and inspect its full prerequisite chain via GET /api/skills/:skillId.
- * 3. Query questions filtered by skill and difficulty via GET /api/questions.
- * 4. Test deterministic question selection via POST /api/questions/select.
+ * Redesigned as an editorial Curriculum Map rather than a debug tool:
+ * - Left: Interactive skill list ordered by curriculum progression with level tags.
+ * - Center: Prerequisite chain visualization showing dependency flows:
+ *     Number Sense → Addition → Repeated Addition → Multiplication → Division.
+ * - Right/Bottom: Real questions linked to the skill with deterministic query testing.
+ * - Minimalist borders, editorial serif headings, monospace metadata.
  */
 
 import { useEffect, useState } from 'react'
+import AppShell from '../components/AppShell'
 import { useAuth } from '../contexts/AuthContext'
 import { fetchSkillById, fetchSkills } from '../services/skillService'
 import { fetchQuestions, selectQuestions } from '../services/questionService'
@@ -21,7 +22,7 @@ interface SkillExplorerPageProps {
 }
 
 export default function SkillExplorerPage({ onNavigateToDiagnostic }: SkillExplorerPageProps) {
-  const { user, logout } = useAuth()
+  const { user } = useAuth()
 
   // Skills state
   const [skills, setSkills] = useState<SkillSummary[]>([])
@@ -36,10 +37,9 @@ export default function SkillExplorerPage({ onNavigateToDiagnostic }: SkillExplo
   const [questionsLoading, setQuestionsLoading] = useState(false)
   const [questionError, setQuestionError] = useState<string | null>(null)
   const [difficultyFilter, setDifficultyFilter] = useState<string>('all')
-  const [selectionCount, setSelectionCount] = useState<number>(2)
+  const selectionCount = 2
   const [lastQueryMode, setLastQueryMode] = useState<'filter' | 'selection' | null>(null)
 
-  // 1. Load all skills on mount
   useEffect(() => {
     loadSkills()
   }, [])
@@ -51,7 +51,6 @@ export default function SkillExplorerPage({ onNavigateToDiagnostic }: SkillExplo
       const data = await fetchSkills()
       setSkills(data)
       if (data.length > 0 && !selectedSkillSlug) {
-        // Automatically select the first multi-level skill or default to first
         const defaultSkill = data.find((s) => s.slug === 'multiplication') ?? data[0]
         setSelectedSkillSlug(defaultSkill.slug)
         loadSkillDetail(defaultSkill.slug)
@@ -63,7 +62,6 @@ export default function SkillExplorerPage({ onNavigateToDiagnostic }: SkillExplo
     }
   }
 
-  // 2. Load detailed skill info & prerequisite chain
   async function loadSkillDetail(slug: string) {
     if (!slug) return
     setSkillDetailLoading(true)
@@ -71,12 +69,49 @@ export default function SkillExplorerPage({ onNavigateToDiagnostic }: SkillExplo
     try {
       const detail = await fetchSkillById(slug)
       setSkillDetail(detail)
-      // Auto-load questions for selected skill
-      loadQuestions(slug, difficultyFilter)
+      loadQuestionsForSkill(detail.id, difficultyFilter)
     } catch (err) {
       setSkillError(err instanceof Error ? err.message : 'Failed to load skill details')
     } finally {
       setSkillDetailLoading(false)
+    }
+  }
+
+  async function loadQuestionsForSkill(skillId: string, diff: string) {
+    setQuestionsLoading(true)
+    setQuestionError(null)
+    setLastQueryMode('filter')
+    try {
+      const filters: { skill?: string; difficulty?: number } = { skill: skillId }
+      if (diff !== 'all') {
+        filters.difficulty = Number(diff)
+      }
+      const qs = await fetchQuestions(filters)
+      setQuestions(qs)
+    } catch (err) {
+      setQuestionError(err instanceof Error ? err.message : 'Failed to load questions')
+    } finally {
+      setQuestionsLoading(false)
+    }
+  }
+
+  async function handleDeterministicSelect() {
+    if (!skillDetail) return
+    setQuestionsLoading(true)
+    setQuestionError(null)
+    setLastQueryMode('selection')
+    try {
+      const diff = difficultyFilter === 'all' ? undefined : Number(difficultyFilter)
+      const selected = await selectQuestions({
+        skillId: skillDetail.id,
+        count: selectionCount,
+        difficulty: diff,
+      })
+      setQuestions(selected.questions)
+    } catch (err) {
+      setQuestionError(err instanceof Error ? err.message : 'Deterministic selection failed')
+    } finally {
+      setQuestionsLoading(false)
     }
   }
 
@@ -85,378 +120,255 @@ export default function SkillExplorerPage({ onNavigateToDiagnostic }: SkillExplo
     loadSkillDetail(slug)
   }
 
-  // 3. Query questions with filter
-  async function loadQuestions(slug: string, diffStr: string) {
-    setQuestionsLoading(true)
-    setQuestionError(null)
-    setLastQueryMode('filter')
-    try {
-      const diffNumber = diffStr === 'all' ? undefined : Number(diffStr)
-      const data = await fetchQuestions({
-        skill: slug,
-        difficulty: diffNumber,
-      })
-      setQuestions(data)
-    } catch (err) {
-      setQuestionError(err instanceof Error ? err.message : 'Failed to load questions')
-    } finally {
-      setQuestionsLoading(false)
+  function handleDifficultyChange(newDiff: string) {
+    setDifficultyFilter(newDiff)
+    if (skillDetail) {
+      loadQuestionsForSkill(skillDetail.id, newDiff)
     }
   }
 
-  // 4. Test deterministic selection service
-  async function handleTestSelection() {
-    if (!selectedSkillSlug) return
-    setQuestionsLoading(true)
-    setQuestionError(null)
-    setLastQueryMode('selection')
-    try {
-      const diffNumber = difficultyFilter === 'all' ? undefined : Number(difficultyFilter)
-      const result = await selectQuestions({
-        skillId: selectedSkillSlug,
-        difficulty: diffNumber,
-        count: selectionCount,
-      })
-      setQuestions(result.questions)
-    } catch (err) {
-      setQuestionError(err instanceof Error ? err.message : 'Question selection failed')
-    } finally {
-      setQuestionsLoading(false)
-    }
-  }
+  const navItems = [
+    ...(onNavigateToDiagnostic
+      ? [
+          {
+            id: 'diagnostic',
+            label: user?.role === 'STUDENT' ? 'Diagnostic' : 'Workspace',
+            onClick: onNavigateToDiagnostic,
+          },
+        ]
+      : []),
+    {
+      id: 'curriculum',
+      label: 'Curriculum Graph',
+      onClick: () => {},
+      active: true,
+    },
+  ]
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col">
-      {/* Top Navbar */}
-      <header className="border-b border-slate-800 bg-slate-900/80 backdrop-blur px-6 py-3 flex items-center justify-between sticky top-0 z-20">
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-lg bg-indigo-600 flex items-center justify-center font-bold text-white text-sm">
-            LL
-          </div>
+    <AppShell navItems={navItems} currentContext="Curriculum Knowledge Graph">
+      <div className="max-w-6xl w-full mx-auto px-6 py-8 sm:py-12 flex-1 flex flex-col gap-8">
+        {/* Editorial Header */}
+        <div className="flex flex-col sm:flex-row sm:items-baseline justify-between gap-4 border-b border-stone-300/60 dark:border-stone-800 pb-6">
           <div>
-            <h1 className="text-sm font-semibold text-white">LearnLoop</h1>
-            <p className="text-xs text-slate-400">Curriculum & Prerequisite Graph Explorer</p>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-3 text-xs">
-          {onNavigateToDiagnostic && (
-            <button
-              onClick={onNavigateToDiagnostic}
-              className="px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-medium transition"
-            >
-              {user?.role === 'TEACHER'
-                ? '← Teacher Workspace'
-                : user?.role === 'ADMIN'
-                  ? '← Admin Console'
-                  : '← Diagnostic Assessment'}
-            </button>
-          )}
-
-          <div className="flex items-center gap-2 bg-slate-800/80 px-3 py-1.5 rounded-lg border border-slate-700">
-            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-            <span className="text-slate-300">{user?.name}</span>
-            <span className="px-1.5 py-0.5 rounded bg-indigo-500/20 text-indigo-300 font-mono text-[10px]">
-              {user?.role}
+            <span className="font-technical text-xs text-[#e05a36] uppercase tracking-wider">
+              Curriculum Architecture
             </span>
+            <h1 className="font-editorial text-4xl sm:text-5xl font-normal text-stone-950 dark:text-[#f7f4ed] tracking-tight mt-1">
+              Skill & Prerequisite Graph
+            </h1>
+            <p className="text-stone-600 dark:text-stone-400 text-xs sm:text-sm mt-1">
+              Explore foundational numeracy competencies, dependency relationships, and question banks.
+            </p>
           </div>
-          <button
-            onClick={logout}
-            className="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 transition"
-          >
-            Sign out
-          </button>
-        </div>
-      </header>
 
-      {/* Main Content Layout */}
-      <main className="flex-1 max-w-7xl w-full mx-auto p-6 grid grid-cols-1 lg:grid-cols-12 gap-6">
-        {/* Left Column: Skill Selection & Prerequisite Chain */}
-        <section className="lg:col-span-5 flex flex-col gap-6">
-          {/* Skill Selector Card */}
-          <div className="bg-slate-900 border border-slate-800 rounded-xl p-5 shadow-sm">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-sm font-semibold text-slate-200 uppercase tracking-wider">
-                1. Curriculum Skills
-              </h2>
-              <button
-                onClick={loadSkills}
-                disabled={skillsLoading}
-                className="text-xs text-indigo-400 hover:text-indigo-300 transition"
-              >
-                {skillsLoading ? 'Refreshing…' : '↻ Reload'}
-              </button>
+          <div className="flex items-center gap-2 font-technical text-xs text-stone-500">
+            <span>{skills.length} active skills</span>
+            <span>•</span>
+            <span>FLN Level 1–3</span>
+          </div>
+        </div>
+
+        {/* Global Error Banner */}
+        {skillError && (
+          <div className="p-4 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-800 dark:text-rose-300 text-xs font-technical flex items-center justify-between">
+            <span>{skillError}</span>
+            <button
+              onClick={() => setSkillError(null)}
+              className="text-[10px] uppercase underline cursor-pointer ml-4"
+            >
+              dismiss
+            </button>
+          </div>
+        )}
+
+        {/* Main 2-Column Layout */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+          {/* Left Column: Skill List (4 cols) */}
+          <div className="lg:col-span-4 border border-stone-300/70 dark:border-stone-800/80 rounded-2xl p-4 flex flex-col gap-2">
+            <div className="px-2 py-1 font-technical text-[10px] uppercase tracking-wider text-stone-500 flex items-center justify-between">
+              <span>Curriculum Sequence</span>
+              <span>Order</span>
             </div>
 
-            {skillError && (
-              <div className="mb-4 p-3 rounded-lg bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs">
-                {skillError}
+            {skillsLoading ? (
+              <div className="py-8 text-center font-technical text-xs text-stone-400 animate-pulse">
+                Loading curriculum…
+              </div>
+            ) : (
+              <div className="flex flex-col gap-1.5">
+                {skills.map((skill) => {
+                  const isSelected = skill.slug === selectedSkillSlug
+                  return (
+                    <button
+                      key={skill.id}
+                      onClick={() => handleSelectSkill(skill.slug)}
+                      className={`p-3 rounded-xl border text-left transition-all cursor-pointer flex items-center justify-between ${
+                        isSelected
+                          ? 'border-[#e05a36] bg-[#e05a36]/10 text-stone-950 dark:text-stone-100 ring-1 ring-[#e05a36]'
+                          : 'border-stone-200/80 dark:border-stone-800/80 bg-stone-100/40 dark:bg-stone-900/30 hover:bg-stone-100 dark:hover:bg-stone-900 text-stone-700 dark:text-stone-300'
+                      }`}
+                    >
+                      <div className="flex flex-col gap-0.5">
+                        <span className="text-xs font-medium">{skill.name}</span>
+                        <span className="font-technical text-[10px] text-stone-400">
+                          {skill.competency}
+                        </span>
+                      </div>
+                      <span className="font-technical text-[10px] px-1.5 py-0.5 rounded border border-stone-300 dark:border-stone-700 text-stone-500">
+                        L{skill.level}
+                      </span>
+                    </button>
+                  )
+                })}
               </div>
             )}
-
-            <label htmlFor="skill-selector" className="block text-xs text-slate-400 mb-1.5">
-              Select a Skill to Inspect:
-            </label>
-            <select
-              id="skill-selector"
-              value={selectedSkillSlug}
-              onChange={(e) => handleSelectSkill(e.target.value)}
-              className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:ring-1 focus:ring-indigo-500"
-            >
-              {skills.map((s) => (
-                <option key={s.id} value={s.slug}>
-                  Level {s.level} — {s.name} ({s.slug})
-                </option>
-              ))}
-            </select>
-
-            {/* Quick-select pill list */}
-            <div className="mt-3 flex flex-wrap gap-1.5">
-              {skills.map((s) => (
-                <button
-                  key={s.id}
-                  onClick={() => handleSelectSkill(s.slug)}
-                  className={`text-xs px-2.5 py-1 rounded-md transition ${
-                    selectedSkillSlug === s.slug
-                      ? 'bg-indigo-600 text-white font-medium shadow-sm'
-                      : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
-                  }`}
-                >
-                  {s.name}
-                </button>
-              ))}
-            </div>
           </div>
 
-          {/* Skill Details & Prerequisite Chain */}
-          <div className="bg-slate-900 border border-slate-800 rounded-xl p-5 shadow-sm flex-1">
-            <h2 className="text-sm font-semibold text-slate-200 uppercase tracking-wider mb-4">
-              2. Prerequisite Chain Traversal
-            </h2>
-
+          {/* Right Column: Skill Detail & Prerequisite Traversal (8 cols) */}
+          <div className="lg:col-span-8 flex flex-col gap-8">
             {skillDetailLoading ? (
-              <p className="text-xs text-slate-400 py-4">Resolving prerequisite chain…</p>
+              <div className="py-16 text-center font-technical text-xs text-stone-400 animate-pulse">
+                Traversing prerequisite graph…
+              </div>
             ) : skillDetail ? (
-              <div className="space-y-4">
-                {/* Selected Skill Banner */}
-                <div className="bg-slate-950/70 border border-indigo-500/30 rounded-lg p-4">
-                  <div className="flex items-center justify-between mb-1">
-                    <span className="text-xs font-mono text-indigo-400">Target Skill</span>
-                    <span className="text-[11px] bg-indigo-500/20 text-indigo-300 px-2 py-0.5 rounded font-mono">
-                      Level {skillDetail.level}
-                    </span>
+              <>
+                {/* Selected Skill Overview Card */}
+                <div className="p-6 rounded-2xl border border-stone-300/80 dark:border-stone-800 bg-stone-100/30 dark:bg-stone-900/20 flex flex-col gap-4">
+                  <div className="flex items-start justify-between gap-4">
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <h2 className="font-editorial text-2xl sm:text-3xl font-normal text-stone-950 dark:text-stone-100">
+                          {skillDetail.name}
+                        </h2>
+                        <span className="font-technical text-[10px] px-2 py-0.5 rounded border border-stone-300 dark:border-stone-700 text-stone-500">
+                          Level {skillDetail.level}
+                        </span>
+                      </div>
+                      <p className="text-stone-600 dark:text-stone-400 text-xs sm:text-sm mt-1 leading-relaxed">
+                        {skillDetail.description}
+                      </p>
+                    </div>
+
+                    <div className="text-right font-technical text-[10px] text-stone-500">
+                      <div>Sequence #{skillDetail.order}</div>
+                      <div>slug: {skillDetail.slug}</div>
+                    </div>
                   </div>
-                  <h3 className="text-base font-bold text-white">{skillDetail.name}</h3>
-                  <p className="text-xs text-slate-400 mt-1 leading-relaxed">
-                    {skillDetail.description}
-                  </p>
-                  <div className="mt-2 text-[11px] text-slate-500 flex gap-4 font-mono">
-                    <span>Slug: {skillDetail.slug}</span>
-                    <span>Order: {skillDetail.order}</span>
-                    <span>Competency: {skillDetail.competency}</span>
+
+                  {/* Prerequisite Chain Visualizer */}
+                  <div className="pt-4 border-t border-stone-300/60 dark:border-stone-800/80 flex flex-col gap-2">
+                    <span className="font-technical text-[10px] uppercase text-stone-500">
+                      Prerequisite Dependency Path
+                    </span>
+
+                    {skillDetail.prerequisiteChain.length === 0 ? (
+                      <p className="font-technical text-xs text-emerald-600 dark:text-emerald-400">
+                        • Foundational Entry Skill (no prior prerequisites required)
+                      </p>
+                    ) : (
+                      <div className="flex flex-wrap items-center gap-2 pt-1 font-technical text-xs">
+                        {skillDetail.prerequisiteChain.map((chainItem) => (
+                          <div key={chainItem.id} className="flex items-center gap-2">
+                            <span className="px-2.5 py-1 rounded-lg border border-stone-300/80 dark:border-stone-700/80 bg-white/70 dark:bg-stone-950/60 text-stone-700 dark:text-stone-300">
+                              {chainItem.name} <span className="text-[10px] text-stone-400">[L{chainItem.level}]</span>
+                            </span>
+                            <span className="text-stone-400">→</span>
+                          </div>
+                        ))}
+                        <span className="px-2.5 py-1 rounded-lg border border-[#e05a36] bg-[#e05a36]/10 text-stone-950 dark:text-stone-100 font-medium">
+                          {skillDetail.name} [Target]
+                        </span>
+                      </div>
+                    )}
                   </div>
                 </div>
 
-                {/* Prerequisite Chain Visualizer */}
-                <div>
-                  <h4 className="text-xs font-semibold text-slate-300 mb-2 flex items-center justify-between">
-                    <span>Prerequisite Dependency Chain</span>
-                    <span className="text-[11px] font-normal text-slate-400">
-                      {skillDetail.prerequisiteChain.length} prerequisite(s)
-                    </span>
-                  </h4>
+                {/* Question Bank Explorer */}
+                <div className="border border-stone-300/70 dark:border-stone-800/80 rounded-2xl p-6 flex flex-col gap-4">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-stone-300/50 dark:border-stone-800 pb-3">
+                    <div>
+                      <h3 className="font-editorial text-xl font-normal text-stone-950 dark:text-stone-100">
+                        Linked Assessment Questions
+                      </h3>
+                      <p className="font-technical text-[11px] text-stone-500">
+                        {questions.length} questions loaded ({lastQueryMode ?? 'filter'})
+                      </p>
+                    </div>
 
-                  {skillDetail.prerequisiteChain.length === 0 ? (
-                    <div className="p-3 rounded-lg bg-slate-950/50 border border-slate-800 text-xs text-slate-400 text-center">
-                      Root foundational skill (No prerequisites)
+                    <div className="flex items-center gap-2 text-xs">
+                      {/* Difficulty selector */}
+                      <select
+                        value={difficultyFilter}
+                        onChange={(e) => handleDifficultyChange(e.target.value)}
+                        className="px-2.5 py-1.5 rounded-lg border border-stone-300 dark:border-stone-700 bg-white dark:bg-stone-900 font-technical text-xs text-stone-800 dark:text-stone-200"
+                      >
+                        <option value="all">All Difficulties</option>
+                        <option value="1">Difficulty 1</option>
+                        <option value="2">Difficulty 2</option>
+                        <option value="3">Difficulty 3</option>
+                      </select>
+
+                      {/* Deterministic test button */}
+                      <button
+                        onClick={handleDeterministicSelect}
+                        className="px-3 py-1.5 rounded-lg bg-stone-900 dark:bg-stone-100 text-stone-50 dark:text-stone-900 font-technical text-xs font-medium hover:bg-stone-800 dark:hover:bg-stone-200 transition-colors cursor-pointer"
+                        title="Simulate deterministic question selection algorithm"
+                      >
+                        Select Sample (2)
+                      </button>
+                    </div>
+                  </div>
+
+                  {questionError && (
+                    <div className="p-3 rounded-lg bg-rose-500/10 border border-rose-500/20 text-rose-800 dark:text-rose-300 text-xs font-technical">
+                      {questionError}
+                    </div>
+                  )}
+
+                  {questionsLoading ? (
+                    <div className="py-8 text-center font-technical text-xs text-stone-400 animate-pulse">
+                      Retrieving questions from bank…
+                    </div>
+                  ) : questions.length === 0 ? (
+                    <div className="py-6 text-center font-technical text-xs text-stone-400">
+                      No questions matched this criteria.
                     </div>
                   ) : (
-                    <div className="relative pl-6 space-y-3 before:absolute before:left-2.5 before:top-2 before:bottom-2 before:w-0.5 before:bg-slate-700">
-                      {skillDetail.prerequisiteChain.map((prereq, index) => (
-                        <div
-                          key={prereq.id}
-                          className="relative bg-slate-950/60 border border-slate-800 rounded-lg p-3 hover:border-slate-700 transition"
-                        >
-                          <div className="absolute -left-[19px] top-4 w-2 h-2 rounded-full bg-indigo-400 ring-4 ring-slate-900"></div>
-                          <div className="flex items-center justify-between">
-                            <span className="text-xs font-semibold text-slate-200">
-                              {index + 1}. {prereq.name}
+                    <div className="divide-y divide-stone-200 dark:divide-stone-800/80">
+                      {questions.map((q) => (
+                        <div key={q.id} className="py-3.5 flex flex-col gap-2 text-xs">
+                          <div className="flex items-baseline justify-between gap-2">
+                            <span className="font-editorial text-base text-stone-900 dark:text-stone-100">
+                              {q.prompt}
                             </span>
-                            <span className="text-[10px] bg-slate-800 text-slate-300 px-1.5 py-0.5 rounded font-mono">
-                              Level {prereq.level}
+                            <span className="font-technical text-[10px] text-stone-500 whitespace-nowrap">
+                              Diff {q.difficulty} • {q.type}
                             </span>
                           </div>
-                          <p className="text-xs text-slate-400 mt-1">{prereq.description}</p>
-                          <div className="text-[10px] text-slate-500 mt-1 font-mono">
-                            slug: {prereq.slug}
-                          </div>
+
+                          {q.options && q.options.length > 0 && (
+                            <div className="flex flex-wrap gap-2 pt-1 font-technical text-[11px]">
+                              {q.options.map((opt, oIdx) => (
+                                <span
+                                  key={oIdx}
+                                  className="px-2 py-0.5 rounded border border-stone-200 dark:border-stone-800 bg-stone-100/50 dark:bg-stone-900/40 text-stone-600 dark:text-stone-400"
+                                >
+                                  {opt.label}
+                                </span>
+                              ))}
+                            </div>
+                          )}
                         </div>
                       ))}
                     </div>
                   )}
                 </div>
-              </div>
-            ) : (
-              <p className="text-xs text-slate-500">Select a skill to inspect its prerequisite chain.</p>
-            )}
+              </>
+            ) : null}
           </div>
-        </section>
-
-        {/* Right Column: Question Bank & Deterministic Selection */}
-        <section className="lg:col-span-7 flex flex-col gap-6">
-          {/* Query Controls Card */}
-          <div className="bg-slate-900 border border-slate-800 rounded-xl p-5 shadow-sm">
-            <h2 className="text-sm font-semibold text-slate-200 uppercase tracking-wider mb-4">
-              3. Question Retrieval & Deterministic Selection
-            </h2>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
-              {/* Difficulty Filter */}
-              <div>
-                <label className="block text-xs text-slate-400 mb-1.5">Difficulty Filter</label>
-                <select
-                  value={difficultyFilter}
-                  onChange={(e) => {
-                    setDifficultyFilter(e.target.value)
-                    loadQuestions(selectedSkillSlug, e.target.value)
-                  }}
-                  className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:ring-1 focus:ring-indigo-500"
-                >
-                  <option value="all">All Difficulties</option>
-                  <option value="1">Difficulty 1</option>
-                  <option value="2">Difficulty 2</option>
-                </select>
-              </div>
-
-              {/* Selection Count (for deterministic selection test) */}
-              <div>
-                <label className="block text-xs text-slate-400 mb-1.5">
-                  Selection Count (Deterministic)
-                </label>
-                <div className="flex gap-2">
-                  <input
-                    type="number"
-                    min={1}
-                    max={10}
-                    value={selectionCount}
-                    onChange={(e) => setSelectionCount(Math.max(1, Number(e.target.value)))}
-                    className="w-20 bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white font-mono text-center focus:outline-none focus:ring-1 focus:ring-indigo-500"
-                  />
-                  <button
-                    onClick={handleTestSelection}
-                    disabled={questionsLoading || !selectedSkillSlug}
-                    className="flex-1 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white text-xs font-semibold px-3 py-2 rounded-lg transition"
-                  >
-                    Select {selectionCount} Questions
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            <div className="flex items-center justify-between pt-3 border-t border-slate-800 text-xs">
-              <span className="text-slate-400">
-                Mode:{' '}
-                <span className="text-slate-200 font-medium">
-                  {lastQueryMode === 'selection'
-                    ? 'Deterministic Selection (/api/questions/select)'
-                    : 'Question Bank Filter (/api/questions)'}
-                </span>
-              </span>
-              <button
-                onClick={() => loadQuestions(selectedSkillSlug, difficultyFilter)}
-                disabled={questionsLoading}
-                className="text-xs text-indigo-400 hover:text-indigo-300 transition"
-              >
-                Fetch All for Skill
-              </button>
-            </div>
-          </div>
-
-          {/* Question List Card */}
-          <div className="bg-slate-900 border border-slate-800 rounded-xl p-5 shadow-sm flex-1">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-sm font-semibold text-slate-200">
-                Backend Results ({questions.length} question{questions.length === 1 ? '' : 's'})
-              </h3>
-              {questionsLoading && (
-                <span className="text-xs text-indigo-400 animate-pulse">Loading questions…</span>
-              )}
-            </div>
-
-            {questionError && (
-              <div className="mb-4 p-3 rounded-lg bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs">
-                {questionError}
-              </div>
-            )}
-
-            {questions.length === 0 && !questionsLoading ? (
-              <div className="p-8 text-center text-slate-500 text-xs bg-slate-950/40 rounded-lg border border-slate-800/80">
-                No questions found matching the requested filters.
-              </div>
-            ) : (
-              <div className="space-y-4">
-                {questions.map((q, idx) => (
-                  <div
-                    key={q.id}
-                    className="bg-slate-950 border border-slate-800 rounded-lg p-4 hover:border-slate-700 transition"
-                  >
-                    <div className="flex items-center justify-between gap-2 mb-2">
-                      <div className="flex items-center gap-2">
-                        <span className="w-5 h-5 rounded-full bg-slate-800 text-slate-300 text-[11px] font-mono flex items-center justify-center font-bold">
-                          {idx + 1}
-                        </span>
-                        <span className="text-xs px-2 py-0.5 rounded font-mono font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-                          Diff {q.difficulty}
-                        </span>
-                        <span className="text-[11px] px-2 py-0.5 rounded font-mono bg-sky-500/10 text-sky-400 border border-sky-500/20">
-                          {q.type}
-                        </span>
-                      </div>
-                      <span className="text-[10px] text-slate-500 font-mono">ID: {q.id}</span>
-                    </div>
-
-                    {/* Question Prompt */}
-                    <p className="text-sm font-medium text-white mb-2 leading-relaxed">
-                      {q.prompt}
-                    </p>
-
-                    {/* Options (if MCQ) */}
-                    {q.options && q.options.length > 0 && (
-                      <div className="mb-3 flex flex-wrap gap-2">
-                        {q.options.map((opt, optIdx) => (
-                          <div
-                            key={optIdx}
-                            className="text-xs bg-slate-900 border border-slate-800 rounded px-2.5 py-1 text-slate-300"
-                          >
-                            <span className="text-slate-500 font-mono mr-1.5">
-                              {String.fromCharCode(65 + optIdx)}.
-                            </span>
-                            {opt.label}
-                          </div>
-                        ))}
-                      </div>
-                    )}
-
-                    {/* Educational Metadata Footer */}
-                    <div className="pt-2 border-t border-slate-900 grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
-                      <div className="text-slate-400">
-                        <span className="text-slate-500">Answer: </span>
-                        <span className="font-semibold text-emerald-400">
-                          {String(q.correctAnswer)}
-                        </span>
-                      </div>
-                      <div className="text-slate-400">
-                        <span className="text-slate-500">Explanation: </span>
-                        <span className="text-slate-300 italic">{q.explanation}</span>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        </section>
-      </main>
-    </div>
+        </div>
+      </div>
+    </AppShell>
   )
 }
