@@ -36,7 +36,6 @@ async function runTests() {
       name: student1.name,
       role: 'STUDENT',
       profileId: student1._id.toString(),
-      sessionType: 'demo',
     }
 
     const authStudent2: AuthenticatedUser = {
@@ -44,7 +43,6 @@ async function runTests() {
       name: student2.name,
       role: 'STUDENT',
       profileId: student2._id.toString(),
-      sessionType: 'demo',
     }
 
     // Test 1: Student 1 retrieves their profile
@@ -112,7 +110,6 @@ async function runTests() {
       name: student3.name,
       role: 'STUDENT',
       profileId: student3._id.toString(),
-      sessionType: 'demo',
     }
     const profile3 = await getStudentProfile(student3._id.toString(), authStudent3)
     console.log(`✓ Successfully retrieved Student 3 profile without crashing:`)

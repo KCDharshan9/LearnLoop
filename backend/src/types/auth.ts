@@ -1,9 +1,8 @@
 /**
- * Auth types for Phase 2 demo authentication.
+ * Auth types.
  *
- * These types are intentionally kept replaceable.
- * The DemoSession can later be replaced with a proper JWT or session token
- * without requiring changes to every protected route handler.
+ * Defines the authenticated identity, login request/response shapes,
+ * and session representation used throughout the backend.
  */
 
 export type UserRole = 'ADMIN' | 'TEACHER' | 'STUDENT'
@@ -21,18 +20,16 @@ export interface AuthenticatedUser {
    * Absent for ADMIN users (no separate domain profile required by the data model).
    */
   profileId?: string
-  /** Session kind — "demo" for the expo phase. */
-  sessionType: 'demo'
 }
 
-/** Shape of POST /api/auth/demo-login request body. */
-export interface DemoLoginRequest {
+/** Shape of POST /api/auth/login request body. */
+export interface LoginRequest {
   email: string
   password: string
 }
 
-/** Shape of successful POST /api/auth/demo-login response data. */
-export interface DemoLoginResponseData {
+/** Shape of successful POST /api/auth/login response data. */
+export interface LoginResponseData {
   user: {
     id: string
     name: string
@@ -40,8 +37,7 @@ export interface DemoLoginResponseData {
     profileId?: string
   }
   session: {
-    type: 'demo'
-    /** Opaque token used to authenticate subsequent requests. */
+    /** Opaque bearer token used to authenticate subsequent requests. */
     token: string
   }
 }
@@ -53,8 +49,5 @@ export interface MeResponseData {
     name: string
     role: UserRole
     profileId?: string
-  }
-  session: {
-    type: 'demo'
   }
 }

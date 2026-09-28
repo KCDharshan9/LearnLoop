@@ -1,22 +1,40 @@
 import { connectDatabase, disconnectDatabase } from '../database/connection.js'
 import { Assessment, LearningActivity, Question, Skill, Student, Teacher, User } from '../models/index.js'
+import { hashPassword } from '../services/authService.js'
 import { Types } from 'mongoose'
 
 type SeedReference = { _id: Types.ObjectId }
 type SeedSkill = SeedReference & { prerequisiteIds: Types.ObjectId[]; level: number }
 
-async function upsertUser(name: string, email: string, role: 'ADMIN' | 'TEACHER' | 'STUDENT', demoCredentialId: string): Promise<SeedReference> {
-  return (await User.findOneAndUpdate({ email }, { $set: { name, email, role, demoCredentialId, active: true } }, { returnDocument: 'after', upsert: true, setDefaultsOnInsert: true }).orFail()) as unknown as SeedReference
+/**
+ * Upsert a user with a bcrypt-hashed password.
+ * The seed credentials are development-only. They are stored in this script,
+ * NOT in application services or React components.
+ *
+ * Development credentials (change before any real deployment):
+ *   admin1@learnloop.xyz   / Admin@123
+ *   teacher1@learnloop.xyz / Teacher@123
+ *   student1@learnloop.xyz / Student@123
+ *   student2@learnloop.xyz / Student@123
+ *   student3@learnloop.xyz / Student@123
+ */
+async function upsertUser(name: string, email: string, role: 'ADMIN' | 'TEACHER' | 'STUDENT', password: string): Promise<SeedReference> {
+  const passwordHash = await hashPassword(password)
+  return (await User.findOneAndUpdate(
+    { email },
+    { $set: { name, email, role, passwordHash, active: true } },
+    { returnDocument: 'after', upsert: true, setDefaultsOnInsert: true },
+  ).orFail()) as unknown as SeedReference
 }
 
 async function seed(): Promise<void> {
   await connectDatabase()
 
-  const admin = await upsertUser('Admin One', 'admin1@learnloop.xyz', 'ADMIN', 'admin1')
-  const teacherUser = await upsertUser('Teacher One', 'teacher1@learnloop.xyz', 'TEACHER', 'teacher1')
-  const studentUser = await upsertUser('Student One', 'student1@learnloop.xyz', 'STUDENT', 'student1')
-  const studentTwoUser = await upsertUser('Student Two', 'student2@learnloop.xyz', 'STUDENT', 'student2')
-  const studentThreeUser = await upsertUser('Student Three', 'student3@learnloop.xyz', 'STUDENT', 'student3')
+  const admin = await upsertUser('Admin One', 'admin1@learnloop.xyz', 'ADMIN', 'Admin@123')
+  const teacherUser = await upsertUser('Teacher One', 'teacher1@learnloop.xyz', 'TEACHER', 'Teacher@123')
+  const studentUser = await upsertUser('Student One', 'student1@learnloop.xyz', 'STUDENT', 'Student@123')
+  const studentTwoUser = await upsertUser('Student Two', 'student2@learnloop.xyz', 'STUDENT', 'Student@123')
+  const studentThreeUser = await upsertUser('Student Three', 'student3@learnloop.xyz', 'STUDENT', 'Student@123')
   const teacher = (await Teacher.findOneAndUpdate({ userId: teacherUser._id }, { $set: { userId: teacherUser._id, name: 'Teacher One', schoolId: 'learnloop-demo-school', studentIds: [] } }, { returnDocument: 'after', upsert: true, setDefaultsOnInsert: true }).orFail()) as unknown as SeedReference
   const student = (await Student.findOneAndUpdate({ studentCode: 'LL-DEMO-001' }, { $set: { userId: studentUser._id, studentCode: 'LL-DEMO-001', name: 'Student One', grade: 3, teacherIds: [teacher._id], currentLevel: 1 } }, { returnDocument: 'after', upsert: true, setDefaultsOnInsert: true }).orFail()) as unknown as SeedReference
   const studentTwo = (await Student.findOneAndUpdate({ studentCode: 'LL-DEMO-002' }, { $set: { userId: studentTwoUser._id, studentCode: 'LL-DEMO-002', name: 'Student Two', grade: 3, teacherIds: [teacher._id], currentLevel: 1 } }, { returnDocument: 'after', upsert: true, setDefaultsOnInsert: true }).orFail()) as unknown as SeedReference

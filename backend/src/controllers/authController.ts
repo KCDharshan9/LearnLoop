@@ -2,22 +2,18 @@
  * Auth controller.
  *
  * Keeps HTTP concerns (parsing request, building response, status codes)
- * separate from auth business logic, which lives in authService.ts.
+ * separate from auth business logic in authService.ts.
  */
 
 import type { Request, Response } from 'express'
 import type { AuthenticatedRequest } from '../middleware/authMiddleware.js'
 import type { ApiError } from '../types/api.js'
-import type {
-  DemoLoginRequest,
-  DemoLoginResponseData,
-  MeResponseData,
-} from '../types/auth.js'
-import { AuthError, demoLogin, encodeSessionToken } from '../services/authService.js'
+import type { LoginRequest, LoginResponseData, MeResponseData } from '../types/auth.js'
+import { AuthError, login, encodeSessionToken } from '../services/authService.js'
 
-/** POST /api/auth/demo-login */
-export async function postDemoLogin(
-  request: Request<object, object, DemoLoginRequest>,
+/** POST /api/auth/login */
+export async function postLogin(
+  request: Request<object, object, LoginRequest>,
   response: Response,
 ): Promise<void> {
   const { email, password } = request.body ?? {}
@@ -41,10 +37,10 @@ export async function postDemoLogin(
   }
 
   try {
-    const authenticatedUser = await demoLogin({ email, password })
+    const authenticatedUser = await login({ email, password })
     const token = encodeSessionToken(authenticatedUser)
 
-    const data: DemoLoginResponseData = {
+    const data: LoginResponseData = {
       user: {
         id: authenticatedUser.userId,
         name: authenticatedUser.name,
@@ -52,7 +48,6 @@ export async function postDemoLogin(
         profileId: authenticatedUser.profileId,
       },
       session: {
-        type: 'demo',
         token,
       },
     }
@@ -83,9 +78,6 @@ export function getMe(request: Request, response: Response): void {
       name: user.name,
       role: user.role,
       profileId: user.profileId,
-    },
-    session: {
-      type: 'demo',
     },
   }
 

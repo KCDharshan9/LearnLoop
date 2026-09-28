@@ -41,7 +41,6 @@ async function runTests() {
       name: student1.name,
       role: 'STUDENT',
       profileId: student1._id.toString(),
-      sessionType: 'demo',
     }
 
     const authStudent2: AuthenticatedUser = {
@@ -49,7 +48,6 @@ async function runTests() {
       name: student2.name,
       role: 'STUDENT',
       profileId: student2._id.toString(),
-      sessionType: 'demo',
     }
 
     const authStudent3: AuthenticatedUser = {
@@ -57,7 +55,6 @@ async function runTests() {
       name: student3.name,
       role: 'STUDENT',
       profileId: student3._id.toString(),
-      sessionType: 'demo',
     }
 
     // Clean up any previous test learning paths for Student 1 to test fresh path generation

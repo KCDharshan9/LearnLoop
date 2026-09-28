@@ -2,11 +2,10 @@
  * AuthContext
  *
  * Provides the current session (user + token) to the component tree.
- * Components should call useAuth() to read authentication state and access
+ * Components call useAuth() to read authentication state and access
  * the login/logout helpers.
  *
- * This context is intentionally thin — it holds state and delegates API
- * calls to authService.ts.
+ * This context is thin — it holds state and delegates API calls to authService.ts.
  */
 
 import {
@@ -19,9 +18,9 @@ import {
 } from 'react'
 import {
   clearSession,
-  demoLogin,
   getMe,
   loadSession,
+  loginWithCredentials,
   saveSession,
 } from '../services/authService'
 import type { AuthUser, StoredSession } from '../types/auth'
@@ -32,7 +31,7 @@ interface AuthContextValue {
   /** True while the initial session check is running. */
   isLoading: boolean
   /**
-   * Attempt a demo login.
+   * Attempt to sign in with email and password.
    * Stores the session and updates `user` on success.
    * Throws a human-readable Error on failure.
    */
@@ -72,7 +71,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const login = useCallback(async (email: string, password: string): Promise<void> => {
-    const data = await demoLogin(email, password)
+    const data = await loginWithCredentials(email, password)
     const session: StoredSession = {
       user: data.user,
       session: data.session,

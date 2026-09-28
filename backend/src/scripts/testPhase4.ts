@@ -18,10 +18,10 @@ async function runTests() {
   console.info('Starting Phase 4 Targeted Validation on', BASE)
 
   // 1. Authenticate Student 1
-  const loginRes1 = await fetch(`${BASE}/auth/demo-login`, {
+  const loginRes1 = await fetch(`${BASE}/auth/login`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ email: 'student1@learnloop.xyz', password: 'student123' }),
+    body: JSON.stringify({ email: 'student1@learnloop.xyz', password: 'Student@123' }),
   })
   const loginData1 = (await loginRes1.json()) as any
   if (!loginData1.success) throw new Error('Student 1 login failed')
@@ -30,10 +30,10 @@ async function runTests() {
   console.info('✓ 1. Student 1 authenticated. Profile ID:', student1Id)
 
   // 2. Authenticate Student 2
-  const loginRes2 = await fetch(`${BASE}/auth/demo-login`, {
+  const loginRes2 = await fetch(`${BASE}/auth/login`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ email: 'student2@learnloop.xyz', password: 'student123' }),
+    body: JSON.stringify({ email: 'student2@learnloop.xyz', password: 'Student@123' }),
   })
   const loginData2 = (await loginRes2.json()) as any
   if (!loginData2.success) throw new Error('Student 2 login failed')

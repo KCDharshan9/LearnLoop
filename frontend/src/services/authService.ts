@@ -1,14 +1,18 @@
+/**
+ * Authentication service.
+ *
+ * Handles communication with the backend auth API, and manages the
+ * session token in localStorage.
+ *
+ * All auth API calls go through this file. No credentials are stored
+ * or hardcoded here — they are submitted by the user at the login form.
+ */
+
 import type { ApiError, ApiSuccess } from '../types/api'
-import type { AuthUser, DemoSession, StoredSession } from '../types/auth'
+import type { AuthUser, Session, StoredSession } from '../types/auth'
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:5000/api'
-const SESSION_KEY = 'learnloop_demo_session'
-
-export const DEMO_ACCOUNTS = [
-  { label: 'Student', email: 'student1@learnloop.xyz', password: 'student123', role: 'STUDENT' as const },
-  { label: 'Teacher', email: 'teacher1@learnloop.xyz', password: 'teacher123', role: 'TEACHER' as const },
-  { label: 'Admin',   email: 'admin1@learnloop.xyz',   password: 'admin123',   role: 'ADMIN' as const },
-] as const
+const SESSION_KEY = 'learnloop_session'
 
 export function saveSession(session: StoredSession): void {
   localStorage.setItem(SESSION_KEY, JSON.stringify(session))
@@ -26,33 +30,42 @@ export function loadSession(): StoredSession | null {
 
 export function clearSession(): void {
   localStorage.removeItem(SESSION_KEY)
+  // Also clear any old session key name from previous versions
+  localStorage.removeItem('learnloop_demo_session')
 }
 
 export function getToken(): string | null {
   return loadSession()?.session.token ?? null
 }
 
-interface DemoLoginResponse {
+interface LoginResponse {
   user: AuthUser
-  session: DemoSession
+  session: Session
 }
 
-export async function demoLogin(email: string, password: string): Promise<DemoLoginResponse> {
-  const response = await fetch(`${API_BASE}/auth/demo-login`, {
+/**
+ * POST /api/auth/login
+ *
+ * Authenticates the user with email and password.
+ * Returns the user and session token on success.
+ * Throws a user-facing Error on failure.
+ */
+export async function loginWithCredentials(email: string, password: string): Promise<LoginResponse> {
+  const response = await fetch(`${API_BASE}/auth/login`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ email, password }),
   })
 
-  const body = (await response.json()) as ApiSuccess<DemoLoginResponse> | ApiError
+  const body = (await response.json()) as ApiSuccess<LoginResponse> | ApiError
 
   if (!body.success) {
     const code = (body as ApiError).error?.code
-    if (code === 'INVALID_CREDENTIALS') throw new Error('Invalid credentials. Please try again.')
-    throw new Error((body as ApiError).error?.message ?? 'Login failed.')
+    if (code === 'INVALID_CREDENTIALS') throw new Error('Invalid email or password.')
+    throw new Error((body as ApiError).error?.message ?? 'Sign in failed.')
   }
 
-  return (body as ApiSuccess<DemoLoginResponse>).data
+  return (body as ApiSuccess<LoginResponse>).data
 }
 
 /**

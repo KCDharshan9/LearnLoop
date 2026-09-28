@@ -2,10 +2,10 @@
  * App.tsx — Role-Aware LearnLoop Root Component.
  *
  * Routing strategy:
- *   Not logged in → DemoLoginPage
+ *   Not logged in → LoginPage
  *   STUDENT       → DiagnosticAssessmentPage | LearnerProfilePage | LearningPathPage
- *   TEACHER       → TeacherLandingPage (Teacher workspace placeholder)
- *   ADMIN         → AdminLandingPage (System administration console placeholder)
+ *   TEACHER       → TeacherLandingPage
+ *   ADMIN         → AdminLandingPage
  *
  * All roles can view the curriculum graph (SkillExplorerPage) and return
  * seamlessly to their role-specific workspace.
@@ -15,7 +15,7 @@ import { useState } from 'react'
 import { AuthProvider, useAuth } from './contexts/AuthContext'
 import { ThemeProvider } from './contexts/ThemeContext'
 import AdminLandingPage from './pages/AdminLandingPage'
-import DemoLoginPage from './pages/DemoLoginPage'
+import LoginPage from './pages/LoginPage'
 import DiagnosticAssessmentPage from './pages/DiagnosticAssessmentPage'
 import LearnerProfilePage from './pages/LearnerProfilePage'
 import LearningPathPage from './pages/LearningPathPage'
@@ -37,7 +37,7 @@ function AppContent() {
     )
   }
 
-  if (!user) return <DemoLoginPage />
+  if (!user) return <LoginPage />
 
   if (view === 'skills') {
     return <SkillExplorerPage onNavigateToDiagnostic={() => setView('default')} />

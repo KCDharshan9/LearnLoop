@@ -1,31 +1,28 @@
 /**
- * Demo authentication service.
+ * Authentication service.
  *
- * Phase 2 scope: validate a demo email/password against the seeded users
- * and resolve the associated domain profile (Student or Teacher).
+ * Implements local email/password authentication using bcrypt password hashing.
+ * Session tokens are Base64-encoded JSON payloads — a lightweight mechanism
+ * that keeps the architecture token-based. Replace with JWT when needed by
+ * swapping only this file's encodeSessionToken / decodeSessionToken functions.
  *
- * The service is intentionally isolated so that it can be replaced with a
- * proper authentication service (e.g. JWT + bcrypt) without touching routes,
- * controllers or middleware.
+ * Responsibilities:
+ *   - Verify email/password credentials against MongoDB users.
+ *   - Resolve associated domain profiles (Student, Teacher).
+ *   - Encode and decode bearer session tokens.
+ *
+ * Security:
+ *   - Passwords are NEVER stored or logged in plaintext.
+ *   - bcrypt comparison is used for all credential checks.
+ *   - Invalid credentials always return the same message regardless of whether
+ *     the user exists, to prevent user enumeration.
  */
 
+import bcrypt from 'bcryptjs'
 import { Student, Teacher, User } from '../models/index.js'
-import type { AuthenticatedUser, DemoLoginRequest, UserRole } from '../types/auth.js'
+import type { AuthenticatedUser, LoginRequest, UserRole } from '../types/auth.js'
 
-/**
- * Well-known demo passwords accepted by the expo system.
- * These are intentionally simple — the expo has no production security requirement.
- * They are listed centrally here so they never scatter across the codebase.
- */
-const DEMO_PASSWORDS: Record<string, string> = {
-  'admin1@learnloop.xyz': 'admin123',
-  'teacher1@learnloop.xyz': 'teacher123',
-  'student1@learnloop.xyz': 'student123',
-  'student2@learnloop.xyz': 'student123',
-  'student3@learnloop.xyz': 'student123',
-}
-
-/** Error thrown when demo credentials are invalid or the user is not found. */
+/** Error thrown when credentials are invalid or the user cannot be authenticated. */
 export class AuthError extends Error {
   constructor(
     public readonly code: string,
@@ -37,28 +34,28 @@ export class AuthError extends Error {
 }
 
 /**
- * Attempt a demo login.
+ * Authenticate a user by email and password.
  *
- * 1. Look up the user by email in the `users` collection.
- * 2. Validate the provided password against the known demo passwords.
- * 3. Resolve the associated domain profile (Student or Teacher) if it exists.
- * 4. Return an AuthenticatedUser object that is safe to encode into a session.
- *
- * Passwords are never logged.
+ * 1. Look up the active user by email.
+ * 2. Compare the submitted password against the stored bcrypt hash.
+ * 3. Resolve the associated domain profile (Student or Teacher).
+ * 4. Return a safe AuthenticatedUser object for token encoding.
  */
-export async function demoLogin(request: DemoLoginRequest): Promise<AuthenticatedUser> {
+export async function login(request: LoginRequest): Promise<AuthenticatedUser> {
   const emailNormalized = request.email.trim().toLowerCase()
 
   const user = await User.findOne({ email: emailNormalized, active: true }).select(
-    '_id name email role demoCredentialId',
+    '_id name email role passwordHash',
   )
 
-  if (!user) {
+  // Return a generic error regardless of whether the user exists
+  // to prevent user enumeration attacks.
+  if (!user || !user.passwordHash) {
     throw new AuthError('INVALID_CREDENTIALS', 'Invalid credentials.')
   }
 
-  const expectedPassword = DEMO_PASSWORDS[emailNormalized]
-  if (!expectedPassword || request.password !== expectedPassword) {
+  const passwordValid = await bcrypt.compare(request.password, user.passwordHash)
+  if (!passwordValid) {
     throw new AuthError('INVALID_CREDENTIALS', 'Invalid credentials.')
   }
 
@@ -81,29 +78,26 @@ export async function demoLogin(request: DemoLoginRequest): Promise<Authenticate
     name: user.name,
     role,
     profileId,
-    sessionType: 'demo',
   }
 }
 
 /**
- * Encode an AuthenticatedUser into an opaque demo session token.
+ * Encode an AuthenticatedUser into a bearer session token.
  *
- * Phase 2 implementation: a Base64-encoded JSON payload.
- * This is intentionally NOT a production token — it has no signature, no expiry,
- * and no cryptographic verification. It is a placeholder that makes the
- * architecture token-based so that a proper JWT can slot in later.
- *
- * The token structure is deliberately simple and documented here.
+ * Current implementation: Base64-encoded JSON.
+ * This is a lightweight placeholder — it has no cryptographic signature and no expiry.
+ * Replace with a signed JWT (using jsonwebtoken) when production security is required.
+ * Only this function and decodeSessionToken need to change for that upgrade.
  */
 export function encodeSessionToken(user: AuthenticatedUser): string {
   return Buffer.from(JSON.stringify(user)).toString('base64')
 }
 
 /**
- * Decode a demo session token back into an AuthenticatedUser.
+ * Decode a bearer session token back into an AuthenticatedUser.
  *
- * Returns null if the token is absent, malformed or not a demo session.
- * Never throws — callers should treat a null result as unauthenticated.
+ * Returns null if the token is absent, malformed, or missing required fields.
+ * Never throws — callers treat a null result as unauthenticated.
  */
 export function decodeSessionToken(token: string | undefined): AuthenticatedUser | null {
   if (!token) return null
@@ -113,8 +107,7 @@ export function decodeSessionToken(token: string | undefined): AuthenticatedUser
       typeof payload !== 'object' ||
       payload === null ||
       typeof (payload as Record<string, unknown>).userId !== 'string' ||
-      typeof (payload as Record<string, unknown>).role !== 'string' ||
-      (payload as Record<string, unknown>).sessionType !== 'demo'
+      typeof (payload as Record<string, unknown>).role !== 'string'
     ) {
       return null
     }
@@ -122,4 +115,13 @@ export function decodeSessionToken(token: string | undefined): AuthenticatedUser
   } catch {
     return null
   }
+}
+
+/**
+ * Hash a plaintext password using bcrypt.
+ * Used by the seed script to create users with hashed passwords.
+ * Never called during normal application requests.
+ */
+export async function hashPassword(plaintext: string): Promise<string> {
+  return bcrypt.hash(plaintext, 12)
 }
