@@ -103,7 +103,7 @@ export default function AdminLandingPage({ onNavigateToCurriculum }: AdminLandin
               scheduled for future admin milestones.
             </p>
             <span className="mt-4 font-technical text-[10px] text-stone-400">
-              [Roadmap: Admin Governance]
+              [System Governance & Control]
             </span>
           </div>
         </div>

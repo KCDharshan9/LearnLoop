@@ -1,28 +1,14 @@
-/**
- * Frontend authentication service.
- *
- * All auth-related API calls are centralized here.
- * Components should call these functions rather than fetch() directly.
- *
- * Storage strategy: the session token is stored in localStorage under a
- * single key. This is appropriate for the demo MVP. A future production
- * implementation may use httpOnly cookies instead.
- */
-
 import type { ApiError, ApiSuccess } from '../types/api'
 import type { AuthUser, DemoSession, StoredSession } from '../types/auth'
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:5000/api'
 const SESSION_KEY = 'learnloop_demo_session'
 
-// ── Known demo credentials (only used to pre-fill the UI buttons) ─────────────
 export const DEMO_ACCOUNTS = [
   { label: 'Student', email: 'student1@learnloop.xyz', password: 'student123', role: 'STUDENT' as const },
   { label: 'Teacher', email: 'teacher1@learnloop.xyz', password: 'teacher123', role: 'TEACHER' as const },
   { label: 'Admin',   email: 'admin1@learnloop.xyz',   password: 'admin123',   role: 'ADMIN' as const },
 ] as const
-
-// ── Session storage helpers ───────────────────────────────────────────────────
 
 export function saveSession(session: StoredSession): void {
   localStorage.setItem(SESSION_KEY, JSON.stringify(session))
@@ -46,19 +32,11 @@ export function getToken(): string | null {
   return loadSession()?.session.token ?? null
 }
 
-// ── API calls ─────────────────────────────────────────────────────────────────
-
 interface DemoLoginResponse {
   user: AuthUser
   session: DemoSession
 }
 
-/**
- * POST /api/auth/demo-login
- *
- * Returns the user and session token on success.
- * Throws an Error with a human-readable message on failure.
- */
 export async function demoLogin(email: string, password: string): Promise<DemoLoginResponse> {
   const response = await fetch(`${API_BASE}/auth/demo-login`, {
     method: 'POST',

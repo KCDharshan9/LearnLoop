@@ -29,11 +29,13 @@ import type {
 interface DiagnosticAssessmentPageProps {
   onNavigateToExplorer?: () => void
   onNavigateToProfile?: () => void
+  onNavigateToLearningPath?: () => void
 }
 
 export default function DiagnosticAssessmentPage({
   onNavigateToExplorer,
   onNavigateToProfile,
+  onNavigateToLearningPath,
 }: DiagnosticAssessmentPageProps) {
   const { user } = useAuth()
 
@@ -125,6 +127,15 @@ export default function DiagnosticAssessmentPage({
             id: 'profile',
             label: 'Learner Profile',
             onClick: onNavigateToProfile,
+          },
+        ]
+      : []),
+    ...(onNavigateToLearningPath
+      ? [
+          {
+            id: 'learning-path',
+            label: 'Learning Path',
+            onClick: onNavigateToLearningPath,
           },
         ]
       : []),
@@ -557,14 +568,24 @@ export default function DiagnosticAssessmentPage({
                 ↺ Retake Diagnostic
               </button>
 
-              <div className="flex items-center gap-3 w-full sm:w-auto">
+              <div className="flex flex-wrap items-center gap-3 w-full sm:w-auto">
+                {onNavigateToLearningPath && (
+                  <button
+                    type="button"
+                    onClick={onNavigateToLearningPath}
+                    className="w-full sm:w-auto px-6 py-2.5 rounded-full bg-[#e05a36] hover:bg-[#c94c2a] text-white font-technical text-xs font-medium transition-colors cursor-pointer shadow-xs"
+                  >
+                    Start Learning Path →
+                  </button>
+                )}
+
                 {onNavigateToProfile && (
                   <button
                     type="button"
                     onClick={onNavigateToProfile}
                     className="w-full sm:w-auto px-6 py-2.5 rounded-full bg-stone-950 dark:bg-stone-100 text-stone-50 dark:text-stone-950 font-technical text-xs font-medium hover:bg-stone-800 dark:hover:bg-stone-200 transition-colors cursor-pointer"
                   >
-                    View Learner Profile →
+                    View Learner Profile
                   </button>
                 )}
               </div>

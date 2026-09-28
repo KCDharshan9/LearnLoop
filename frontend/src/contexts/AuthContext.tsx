@@ -20,6 +20,7 @@ import {
 import {
   clearSession,
   demoLogin,
+  getMe,
   loadSession,
   saveSession,
 } from '../services/authService'
@@ -46,13 +47,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null)
   const [isLoading, setIsLoading] = useState(true)
 
-  // On mount, restore session from localStorage if one exists.
+  // On mount, restore and verify session with backend /me.
   useEffect(() => {
-    const stored: StoredSession | null = loadSession()
-    if (stored?.user) {
-      setUser(stored.user)
+    async function initSession() {
+      const stored: StoredSession | null = loadSession()
+      if (stored?.user && stored.session.token) {
+        setUser(stored.user)
+        try {
+          const verified = await getMe()
+          if (verified) {
+            setUser(verified)
+          } else {
+            clearSession()
+            setUser(null)
+          }
+        } catch {
+          // Keep cached user on temporary network unavailability
+        }
+      }
+      setIsLoading(false)
     }
-    setIsLoading(false)
+
+    initSession()
   }, [])
 
   const login = useCallback(async (email: string, password: string): Promise<void> => {

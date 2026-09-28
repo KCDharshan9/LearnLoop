@@ -13,7 +13,8 @@
  */
 
 async function runTests() {
-  const BASE = 'http://localhost:5001/api'
+  const PORT = process.env.PORT ?? '5000'
+  const BASE = process.env.API_BASE ?? `http://localhost:${PORT}/api`
   console.info('Starting Phase 4 Targeted Validation on', BASE)
 
   // 1. Authenticate Student 1

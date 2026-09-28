@@ -240,7 +240,7 @@ export default function DemoLoginPage() {
       {/* Bottom Subtext */}
       <footer className="max-w-5xl w-full mx-auto pt-6 border-t border-stone-300/40 dark:border-stone-800/60 flex flex-col sm:flex-row items-center justify-between text-[11px] font-technical text-stone-500">
         <div>LearnLoop educational research platform</div>
-        <div>[Phase 0 through 5 verified]</div>
+        <div>[Competency & Prerequisite Engine]</div>
       </footer>
     </div>
   )

@@ -41,26 +41,31 @@ export default function SkillExplorerPage({ onNavigateToDiagnostic }: SkillExplo
   const [lastQueryMode, setLastQueryMode] = useState<'filter' | 'selection' | null>(null)
 
   useEffect(() => {
-    loadSkills()
-  }, [])
-
-  async function loadSkills() {
-    setSkillsLoading(true)
-    setSkillError(null)
-    try {
-      const data = await fetchSkills()
-      setSkills(data)
-      if (data.length > 0 && !selectedSkillSlug) {
-        const defaultSkill = data.find((s) => s.slug === 'multiplication') ?? data[0]
-        setSelectedSkillSlug(defaultSkill.slug)
-        loadSkillDetail(defaultSkill.slug)
+    let mounted = true
+    async function loadSkills() {
+      setSkillsLoading(true)
+      setSkillError(null)
+      try {
+        const data = await fetchSkills()
+        if (!mounted) return
+        setSkills(data)
+        if (data.length > 0 && !selectedSkillSlug) {
+          const defaultSkill = data.find((s) => s.slug === 'multiplication') ?? data[0]
+          setSelectedSkillSlug(defaultSkill.slug)
+          loadSkillDetail(defaultSkill.slug)
+        }
+      } catch (err) {
+        if (!mounted) return
+        setSkillError(err instanceof Error ? err.message : 'Failed to load skills')
+      } finally {
+        if (mounted) setSkillsLoading(false)
       }
-    } catch (err) {
-      setSkillError(err instanceof Error ? err.message : 'Failed to load skills')
-    } finally {
-      setSkillsLoading(false)
     }
-  }
+    loadSkills()
+    return () => {
+      mounted = false
+    }
+  }, [])
 
   async function loadSkillDetail(slug: string) {
     if (!slug) return

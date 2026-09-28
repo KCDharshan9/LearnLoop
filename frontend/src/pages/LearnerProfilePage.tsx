@@ -11,7 +11,7 @@
  * 6. Intentional Empty State with clean CTA.
  */
 
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import AppShell from '../components/AppShell'
 import { useAuth } from '../contexts/AuthContext'
 import { fetchStudentProfile, fetchStudentProgress } from '../services/studentService'
@@ -24,11 +24,13 @@ import type {
 
 interface LearnerProfilePageProps {
   onNavigateToDiagnostic: () => void
+  onNavigateToLearningPath?: () => void
   onNavigateToCurriculum: () => void
 }
 
 export default function LearnerProfilePage({
   onNavigateToDiagnostic,
+  onNavigateToLearningPath,
   onNavigateToCurriculum,
 }: LearnerProfilePageProps) {
   const { user } = useAuth()
@@ -41,17 +43,7 @@ export default function LearnerProfilePage({
 
   const studentId = user?.profileId
 
-  useEffect(() => {
-    if (!studentId) {
-      setError('Student profile not found. Please log in as a student.')
-      setLoading(false)
-      return
-    }
-
-    loadData(studentId)
-  }, [studentId])
-
-  async function loadData(id: string) {
+  const loadData = useCallback(async (id: string) => {
     setLoading(true)
     setError(null)
     try {
@@ -66,7 +58,17 @@ export default function LearnerProfilePage({
     } finally {
       setLoading(false)
     }
-  }
+  }, [])
+
+  useEffect(() => {
+    if (!studentId) {
+      setError('Student profile not found. Please log in as a student.')
+      setLoading(false)
+      return
+    }
+
+    loadData(studentId)
+  }, [studentId, loadData])
 
   // Restrained trend badges
   function renderTrendBadge(trend: string) {
@@ -135,6 +137,15 @@ export default function LearnerProfilePage({
       onClick: () => {},
       active: true,
     },
+    ...(onNavigateToLearningPath
+      ? [
+          {
+            id: 'learning-path',
+            label: 'Learning Path',
+            onClick: onNavigateToLearningPath,
+          },
+        ]
+      : []),
     {
       id: 'curriculum',
       label: 'Curriculum Graph',
@@ -188,7 +199,16 @@ export default function LearnerProfilePage({
                 </p>
               </div>
 
-              <div>
+              <div className="flex flex-wrap items-center gap-3">
+                {onNavigateToLearningPath && profileData.summary.totalAssessedSkills > 0 && (
+                  <button
+                    onClick={onNavigateToLearningPath}
+                    className="px-5 py-2.5 rounded-full bg-[#e05a36] hover:bg-[#c94c2a] text-white font-technical text-xs font-medium transition-colors cursor-pointer shadow-xs"
+                  >
+                    View Learning Path →
+                  </button>
+                )}
+
                 <button
                   onClick={onNavigateToDiagnostic}
                   className="px-5 py-2.5 rounded-full bg-stone-950 dark:bg-stone-100 text-stone-50 dark:text-stone-950 font-technical text-xs font-medium hover:bg-stone-800 dark:hover:bg-stone-200 transition-colors cursor-pointer"

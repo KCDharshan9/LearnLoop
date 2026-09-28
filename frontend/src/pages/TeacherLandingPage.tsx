@@ -87,7 +87,7 @@ export default function TeacherLandingPage({ onNavigateToCurriculum }: TeacherLa
               learning activities.
             </p>
             <span className="mt-4 font-technical text-[10px] text-stone-400">
-              [Phase 4 & 5 persistent data verified]
+              [Continuous Diagnostic Active]
             </span>
           </div>
 
@@ -99,11 +99,10 @@ export default function TeacherLandingPage({ onNavigateToCurriculum }: TeacherLa
               Classroom Analytics
             </div>
             <p className="text-xs text-stone-500 mt-1 leading-relaxed">
-              Full cohort analytics, print question-paper generator, and intervention recommendations
-              are mapped for Phase 9.
+              Full cohort analytics, print question-paper generator, and intervention recommendations.
             </p>
             <span className="mt-4 font-technical text-[10px] text-stone-400">
-              [Roadmap: Phase 9 Teacher Analytics]
+              [Classroom Analytics & Cohort Reporting]
             </span>
           </div>
         </div>

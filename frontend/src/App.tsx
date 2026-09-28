@@ -3,7 +3,7 @@
  *
  * Routing strategy:
  *   Not logged in → DemoLoginPage
- *   STUDENT       → DiagnosticAssessmentPage | LearnerProfilePage (natural bidirectional flow)
+ *   STUDENT       → DiagnosticAssessmentPage | LearnerProfilePage | LearningPathPage
  *   TEACHER       → TeacherLandingPage (Teacher workspace placeholder)
  *   ADMIN         → AdminLandingPage (System administration console placeholder)
  *
@@ -18,14 +18,15 @@ import AdminLandingPage from './pages/AdminLandingPage'
 import DemoLoginPage from './pages/DemoLoginPage'
 import DiagnosticAssessmentPage from './pages/DiagnosticAssessmentPage'
 import LearnerProfilePage from './pages/LearnerProfilePage'
+import LearningPathPage from './pages/LearningPathPage'
 import SkillExplorerPage from './pages/SkillExplorerPage'
 import TeacherLandingPage from './pages/TeacherLandingPage'
 
 function AppContent() {
   const { user, isLoading } = useAuth()
-  // Student views: 'diagnostic' | 'profile'
+  // Student views: 'diagnostic' | 'profile' | 'learning-path'
   // General views: 'default' | 'skills'
-  const [studentView, setStudentView] = useState<'diagnostic' | 'profile'>('diagnostic')
+  const [studentView, setStudentView] = useState<'diagnostic' | 'profile' | 'learning-path'>('diagnostic')
   const [view, setView] = useState<'default' | 'skills'>('default')
 
   if (isLoading) {
@@ -49,6 +50,16 @@ function AppContent() {
         return (
           <LearnerProfilePage
             onNavigateToDiagnostic={() => setStudentView('diagnostic')}
+            onNavigateToLearningPath={() => setStudentView('learning-path')}
+            onNavigateToCurriculum={() => setView('skills')}
+          />
+        )
+      }
+      if (studentView === 'learning-path') {
+        return (
+          <LearningPathPage
+            onNavigateToDiagnostic={() => setStudentView('diagnostic')}
+            onNavigateToProfile={() => setStudentView('profile')}
             onNavigateToCurriculum={() => setView('skills')}
           />
         )
@@ -57,6 +68,7 @@ function AppContent() {
         <DiagnosticAssessmentPage
           onNavigateToExplorer={() => setView('skills')}
           onNavigateToProfile={() => setStudentView('profile')}
+          onNavigateToLearningPath={() => setStudentView('learning-path')}
         />
       )
     case 'TEACHER':
@@ -68,6 +80,7 @@ function AppContent() {
         <DiagnosticAssessmentPage
           onNavigateToExplorer={() => setView('skills')}
           onNavigateToProfile={() => setStudentView('profile')}
+          onNavigateToLearningPath={() => setStudentView('learning-path')}
         />
       )
   }
