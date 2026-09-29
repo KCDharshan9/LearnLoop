@@ -29,7 +29,22 @@ export const LearningPath = model('LearningPath', new Schema({ studentId: { type
 
 export const ActivityAttempt = model('ActivityAttempt', new Schema({ studentId: { type: id, ref: 'Student', required: true }, activityId: { type: id, ref: 'LearningActivity', required: true }, responses: { type: Schema.Types.Mixed, required: true }, completed: { type: Boolean, required: true }, score: Number, startedAt: { type: Date, required: true }, completedAt: Date }, { collection: 'activityAttempts' }))
 
-export const PracticeSession = model('PracticeSession', new Schema({ studentId: { type: id, ref: 'Student', required: true, index: true }, skillId: { type: id, ref: 'Skill', required: true }, currentDifficulty: { type: Number, required: true, min: 1 }, questionHistory: [{ type: id, ref: 'Question' }], status: { type: String, required: true, enum: ['ACTIVE', 'COMPLETED', 'ABANDONED'] }, startedAt: { type: Date, required: true }, completedAt: Date }, { collection: 'practiceSessions' }))
+export const PracticeSession = model('PracticeSession', new Schema({
+  studentId: { type: id, ref: 'Student', required: true, index: true },
+  skillId: { type: id, ref: 'Skill', required: true },
+  learningPathId: { type: id, ref: 'LearningPath', index: true },
+  stepNumber: { type: Number },
+  currentDifficulty: { type: Number, required: true, min: 1 },
+  currentQuestionId: { type: id, ref: 'Question' },
+  questionHistory: [{ type: id, ref: 'Question' }],
+  correctCount: { type: Number, default: 0 },
+  totalAnswered: { type: Number, default: 0 },
+  consecutiveCorrect: { type: Number, default: 0 },
+  consecutiveIncorrect: { type: Number, default: 0 },
+  status: { type: String, required: true, enum: ['ACTIVE', 'COMPLETED', 'ABANDONED'] },
+  startedAt: { type: Date, required: true },
+  completedAt: Date
+}, { collection: 'practiceSessions' }))
 
 export const PracticeAttempt = model('PracticeAttempt', new Schema({ sessionId: { type: id, ref: 'PracticeSession', required: true }, studentId: { type: id, ref: 'Student', required: true, index: true }, skillId: { type: id, ref: 'Skill', required: true }, questionId: { type: id, ref: 'Question', required: true }, answer: { type: Schema.Types.Mixed, required: true }, isCorrect: { type: Boolean, required: true }, difficulty: { type: Number, required: true }, previousDifficulty: { type: Number, required: true }, nextDifficulty: { type: Number, required: true }, hintUsed: { type: Boolean, required: true, default: false } }, { timestamps: { createdAt: true, updatedAt: false }, collection: 'practiceAttempts' }))
 

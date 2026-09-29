@@ -30,12 +30,14 @@ interface LearningPathPageProps {
   onNavigateToDiagnostic: () => void
   onNavigateToProfile: () => void
   onNavigateToCurriculum: () => void
+  onStartPractice?: (learningPathId: string, stepNumber: number) => void
 }
 
 export default function LearningPathPage({
   onNavigateToDiagnostic,
   onNavigateToProfile,
   onNavigateToCurriculum,
+  onStartPractice,
 }: LearningPathPageProps) {
   const { user } = useAuth()
 
@@ -367,24 +369,41 @@ export default function LearningPathPage({
                     {/* Step Completion Action Button */}
                     <div className="flex items-center justify-between pt-2">
                       <span className="font-technical text-xs text-stone-500">
-                        Action required to advance to next stage
+                        {currentStep.type === 'PRACTICE'
+                          ? 'Targeted practice checkpoint for this concept'
+                          : 'Action required to advance to next stage'}
                       </span>
 
-                      <button
-                        type="button"
-                        disabled={actionLoading}
-                        onClick={() => handleCompleteStep(currentStep.stepNumber)}
-                        className="px-6 py-2.5 rounded-full bg-stone-950 dark:bg-stone-100 text-stone-50 dark:text-stone-950 font-technical text-xs font-medium hover:bg-stone-800 dark:hover:bg-stone-200 transition-colors cursor-pointer disabled:opacity-50 flex items-center gap-2"
-                      >
-                        {actionLoading ? (
-                          'Recording progress…'
-                        ) : (
-                          <>
-                            <span>Complete Step & Continue</span>
-                            <span>→</span>
-                          </>
-                        )}
-                      </button>
+                      {currentStep.type === 'PRACTICE' ? (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (onStartPractice && pathData?.id) {
+                              onStartPractice(pathData.id, currentStep.stepNumber)
+                            }
+                          }}
+                          className="px-6 py-2.5 rounded-full bg-[#e05a36] text-white font-technical text-xs font-medium hover:bg-[#c84927] transition-colors cursor-pointer flex items-center gap-2"
+                        >
+                          <span>Start Adaptive Practice</span>
+                          <span>→</span>
+                        </button>
+                      ) : (
+                        <button
+                          type="button"
+                          disabled={actionLoading}
+                          onClick={() => handleCompleteStep(currentStep.stepNumber)}
+                          className="px-6 py-2.5 rounded-full bg-stone-950 dark:bg-stone-100 text-stone-50 dark:text-stone-950 font-technical text-xs font-medium hover:bg-stone-800 dark:hover:bg-stone-200 transition-colors cursor-pointer disabled:opacity-50 flex items-center gap-2"
+                        >
+                          {actionLoading ? (
+                            'Recording progress…'
+                          ) : (
+                            <>
+                              <span>Complete Step & Continue</span>
+                              <span>→</span>
+                            </>
+                          )}
+                        </button>
+                      )}
                     </div>
                   </div>
                 )}

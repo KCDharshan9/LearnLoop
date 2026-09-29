@@ -19,14 +19,20 @@ import LoginPage from './pages/LoginPage'
 import DiagnosticAssessmentPage from './pages/DiagnosticAssessmentPage'
 import LearnerProfilePage from './pages/LearnerProfilePage'
 import LearningPathPage from './pages/LearningPathPage'
+import PracticePage from './pages/PracticePage'
 import SkillExplorerPage from './pages/SkillExplorerPage'
 import TeacherLandingPage from './pages/TeacherLandingPage'
 
 function AppContent() {
   const { user, isLoading } = useAuth()
-  // Student views: 'diagnostic' | 'profile' | 'learning-path'
+  // Student views: 'diagnostic' | 'profile' | 'learning-path' | 'practice'
   // General views: 'default' | 'skills'
-  const [studentView, setStudentView] = useState<'diagnostic' | 'profile' | 'learning-path'>('diagnostic')
+  const [studentView, setStudentView] = useState<'diagnostic' | 'profile' | 'learning-path' | 'practice'>('diagnostic')
+  const [practiceContext, setPracticeContext] = useState<{
+    learningPathId?: string
+    stepNumber?: number
+    skillId?: string
+  } | null>(null)
   const [view, setView] = useState<'default' | 'skills'>('default')
 
   if (isLoading) {
@@ -60,6 +66,23 @@ function AppContent() {
           <LearningPathPage
             onNavigateToDiagnostic={() => setStudentView('diagnostic')}
             onNavigateToProfile={() => setStudentView('profile')}
+            onNavigateToCurriculum={() => setView('skills')}
+            onStartPractice={(learningPathId, stepNumber) => {
+              setPracticeContext({ learningPathId, stepNumber })
+              setStudentView('practice')
+            }}
+          />
+        )
+      }
+      if (studentView === 'practice') {
+        return (
+          <PracticePage
+            learningPathId={practiceContext?.learningPathId}
+            stepNumber={practiceContext?.stepNumber}
+            skillId={practiceContext?.skillId}
+            onNavigateToDiagnostic={() => setStudentView('diagnostic')}
+            onNavigateToProfile={() => setStudentView('profile')}
+            onNavigateToLearningPath={() => setStudentView('learning-path')}
             onNavigateToCurriculum={() => setView('skills')}
           />
         )
